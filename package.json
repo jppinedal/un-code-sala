@@ -2,6 +2,8 @@
   "name": "codesala",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
+  "author": "Juan Pablo Pineda",
   "type": "module",
   "description": "Salas de código en tiempo real donde solo el propietario edita (o decide quién edita).",
   "scripts": {

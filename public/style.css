@@ -97,13 +97,18 @@ select:disabled { opacity: 1; cursor: default; appearance: none; -webkit-appeara
 .mine li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); }
 .mine li a { font-family: ui-monospace, Consolas, monospace; font-weight: 600; text-decoration: none; }
 .mine li span { color: var(--muted); }
-.features { list-style: none; padding: 0; margin: 44px 0 0; display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.features { list-style: none; padding: 0; margin: 44px 0 0; display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
 .features li { padding: 14px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); }
 .features strong { display: block; margin-bottom: 4px; }
 .features span { color: var(--muted); font-size: 13px; }
 
 /* ---------- Sala ---------- */
-.room-page { display: grid; grid-template-rows: auto auto 1fr auto; height: 100dvh; overflow: hidden; }
+.room-page { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; height: 100dvh; overflow: hidden; }
+/* Filas fijas: si el aviso de solo lectura está oculto, la barra de estado no debe subir a la fila flexible */
+.room-page > .topbar { grid-row: 1; }
+.room-page > .banner { grid-row: 2; }
+.room-page > .workspace { grid-row: 3; }
+.room-page > .statusbar { grid-row: 4; }
 
 .topbar {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
