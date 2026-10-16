@@ -1,0 +1,7 @@
+node_modules/
+dist/
+data/
+.env
+
+# Paquete que genera deploy/publicar.ps1
+deploy/*.zip

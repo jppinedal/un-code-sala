@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UN Code Sala | comparte código, edita solo tú</title>
+  <meta name="description" content="Salas de código en tiempo real: todos ven lo que escribes, pero solo tú (y quien tú autorices) puede editar.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/theme.js"></script>
+</head>
+<body class="landing-page">
+  <main class="landing">
+    <div class="brand big"><span class="brand-mark">&lt;/&gt;</span> UN Code Sala</div>
+    <h1>Comparte código en vivo.<br><span class="accent">Edita solo tú.</span></h1>
+    <p class="lead">Crea una sala y envía el enlace. Quien entre ve cada cambio al instante, pero únicamente tú puedes escribir, o decidir quién más puede hacerlo.</p>
+
+    <form class="create" id="create-form">
+      <label class="field grow">
+        <span>Nombre de la sala (opcional)</span>
+        <input id="room-name" maxlength="60" autocomplete="off">
+      </label>
+      <label class="field">
+        <span>Lenguaje</span>
+        <select id="lang"></select>
+      </label>
+      <button class="btn primary large" id="create-btn" type="submit">Crear sala</button>
+    </form>
+    <p class="error" id="error" role="alert" hidden></p>
+
+    <section class="join">
+      <form id="join-form">
+        <label class="field">
+          <span>¿Tienes un enlace o código? Únete a una sala</span>
+          <div class="row">
+            <input id="join-input" placeholder="Enlace o código" autocomplete="off" spellcheck="false">
+            <button class="btn" type="submit">Entrar</button>
+          </div>
+        </label>
+      </form>
+    </section>
+
+    <section class="mine" id="mine" hidden>
+      <h2>Mis salas</h2>
+      <ul id="mine-list"></ul>
+    </section>
+
+    <ul class="features">
+      <li><strong>Un solo editor</strong><span>El creador es el propietario. Los demás entran en solo lectura.</span></li>
+      <li><strong>Tú decides</strong><span>Da o quita permiso de edición a cada persona, cuando quieras.</span></li>
+      <li><strong>Bloques</strong><span>Separa el código en bloques, cada uno con su lenguaje y su botón de copiar.</span></li>
+      <li><strong>Tiempo real</strong><span>Cambios y cursores al instante, con +30 lenguajes resaltados.</span></li>
+    </ul>
+  </main>
+  <footer class="credit">Juan Pablo Pineda 2026</footer>
+  <script type="module" src="/dist/landing.js"></script>
+</body>
+</html>
