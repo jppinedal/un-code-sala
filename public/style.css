@@ -97,6 +97,10 @@ select:disabled { opacity: 1; cursor: default; appearance: none; -webkit-appeara
 .mine li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); }
 .mine li a { font-family: ui-monospace, Consolas, monospace; font-weight: 600; text-decoration: none; }
 .mine li span { color: var(--muted); }
+.mine-side { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.mine-del { display: flex; padding: 4px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }
+.mine-del:hover:not(:disabled), .mine-del:focus-visible { color: var(--danger); outline: none; }
+.mine-del:disabled { opacity: .5; cursor: default; }
 .features { list-style: none; padding: 0; margin: 44px 0 0; display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
 .features li { padding: 14px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); }
 .features strong { display: block; margin-bottom: 4px; }
@@ -167,6 +171,12 @@ select:disabled { opacity: 1; cursor: default; appearance: none; -webkit-appeara
   border: 1px dashed var(--border); border-radius: 10px; background: transparent; color: var(--muted); font: inherit; cursor: pointer;
 }
 .add-block:hover, .add-block:focus-visible { border-color: var(--accent-text); color: var(--fg); outline: none; }
+.clear-all {
+  display: flex; align-items: center; gap: 6px; margin: 10px auto 0; padding: 6px 10px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer;
+}
+.clear-all:hover, .clear-all:focus-visible { color: var(--danger); outline: none; }
+.toast-action { margin-left: 12px; padding: 0; border: 0; background: transparent; color: var(--accent-text); font: inherit; font-weight: 600; cursor: pointer; }
 .empty { color: var(--muted); text-align: center; margin: 40px 0; }
 .empty:empty, .empty[hidden] { display: none; }
 body[data-role='viewer'] .edit-only { display: none !important; }

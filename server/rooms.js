@@ -119,7 +119,8 @@ function loadRoomData(data) {
     addBlocks(doc, items);
   } else {
     if (data.doc) Y.applyUpdate(doc, Buffer.from(data.doc, 'base64'));
-    if (doc.getMap('blocks').size === 0) {
+    // Solo el primer formato guardaba un único texto. En el actual, una sala sin bloques es una sala limpiada.
+    if (data.version !== FORMAT_VERSION && doc.getMap('blocks').size === 0) {
       const legacy = doc.getText('code');
       addBlocks(doc, [{ lang: data.language, text: legacy.toString() }]);
       if (legacy.length) legacy.delete(0, legacy.length);
@@ -141,6 +142,7 @@ export class Room {
     this.saveTimer = null;
     this.idleTimer = null;
     this.membersTimer = null;
+    this.deleted = false; // la eliminó su propietario: ya no se guarda ni se acepta nada
 
     const loaded = loadRoomData(data);
     this.doc = loaded.doc;
@@ -184,6 +186,7 @@ export class Room {
     const helloTimer = setTimeout(() => ws.close(4408, 'hello timeout'), HELLO_TIMEOUT_MS);
 
     ws.on('message', (data, isBinary) => {
+      if (this.deleted) return;
       try {
         if (!conn.ready) {
           const msg = isBinary ? null : JSON.parse(data.toString());
@@ -451,6 +454,7 @@ export class Room {
 
   // ---------- Persistencia ----------
   touch() {
+    if (this.deleted) return;
     this.updatedAt = Date.now();
     clearTimeout(this.saveTimer);
     this.saveTimer = setTimeout(() => this.save(), SAVE_DEBOUNCE_MS);
@@ -459,6 +463,7 @@ export class Room {
   save() {
     clearTimeout(this.saveTimer);
     this.saveTimer = null;
+    if (this.deleted) return;
     this.manager.write({
       version: FORMAT_VERSION,
       id: this.id,
@@ -477,6 +482,18 @@ export class Room {
     clearTimeout(this.membersTimer);
     this.awareness.destroy();
     this.doc.destroy();
+  }
+
+  /** Cierra la sala para siempre: avisa a quienes están dentro (código 4410, no reintentan) y deja de guardar. */
+  dispose() {
+    this.deleted = true;
+    const conns = [...this.conns];
+    this.conns.clear();
+    for (const conn of conns) {
+      sendJson(conn, { t: 'error', code: 'deleted' });
+      conn.ws.close(4410, 'deleted');
+    }
+    this.destroy();
   }
 }
 
@@ -556,6 +573,21 @@ export class RoomManager {
     }
     this.rooms.set(id, room);
     return room;
+  }
+
+  /** Elimina una sala si `token` es el de su propietario. Devuelve 'ok', 'forbidden' o 'not-found'. */
+  remove(id, token) {
+    const room = this.get(id);
+    if (!room) return 'not-found';
+    if (typeof token !== 'string' || token.length > 200 || !timingSafeEqual(sha256(token), room.ownerHash)) return 'forbidden';
+    this.rooms.delete(id);
+    room.dispose();
+    for (const suffix of ['', '.premigration', '.tmp']) {
+      try {
+        fs.unlinkSync(this.file(id) + suffix);
+      } catch {}
+    }
+    return 'ok';
   }
 
   unload(room) {

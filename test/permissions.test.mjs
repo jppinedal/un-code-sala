@@ -467,3 +467,57 @@ test('salas inexistentes e ids maliciosos no se sirven', async () => {
   const msg = await new Promise((resolve) => ws.on('message', (d) => resolve(JSON.parse(d.toString()))));
   assert.equal(msg.code, 'not-found');
 });
+
+test('eliminar una sala exige el token de propietario, avisa a quienes están dentro y borra sus archivos', async () => {
+  const { id, ownerToken } = await createRoom('python', 'Borrable');
+  const del = (token) =>
+    fetch(`${base()}/api/rooms/${id}`, { method: 'DELETE', headers: token ? { authorization: `Bearer ${token}` } : {} });
+  const owner = new Client(id, { owner: ownerToken });
+  const guest = new Client(id, { name: 'Ana' });
+  await ready(owner, guest);
+  let closeCode = null;
+  guest.ws.on('close', (code) => (closeCode = code));
+  owner.text(owner.blocks()[0].id).insert(0, 'pendiente de guardar'); // deja un guardado programado
+
+  assert.equal((await del()).status, 403, 'sin token');
+  assert.equal((await del('token-falso')).status, 403, 'token falso');
+  assert.equal((await fetch(`${base()}/r/${id}`)).status, 200, 'sigue existiendo');
+
+  assert.equal((await del(ownerToken)).status, 204);
+  await until(() => guest.errors.includes('deleted') && closeCode === 4410, 'aviso de sala eliminada y cierre sin reintento');
+  assert.equal((await fetch(`${base()}/r/${id}`)).status, 404);
+  assert.ok(!fs.existsSync(path.join(roomsDir(), `${id}.json`)), 'archivo borrado');
+
+  await wait(1800); // el guardado que estaba programado no debe devolver la sala a la vida
+  assert.ok(!fs.existsSync(path.join(roomsDir(), `${id}.json`)), 'el guardado pendiente no la recrea');
+  assert.equal((await del(ownerToken)).status, 404, 'ya no existe');
+  closeAll(owner, guest);
+});
+
+test('limpiar la sala deja cero bloques, un visitante no puede, y así se recarga desde disco', async () => {
+  const { id, ownerToken } = await createRoom('python');
+  const owner = new Client(id, { owner: ownerToken });
+  const guest = new Client(id, { name: 'Ana' });
+  await ready(owner, guest);
+  owner.addBlock('sql', 'SELECT 1;');
+  await until(() => owner.blocks().length === 2, 'segundo bloque');
+
+  guest.doc.getMap('blocks').clear(); // un visitante intenta limpiar la sala
+  await wait(300);
+  assert.equal(app.rooms.get(id).doc.getMap('blocks').size, 2, 'el servidor descarta la limpieza del visitante');
+
+  owner.doc.getMap('blocks').clear();
+  await until(() => app.rooms.get(id).doc.getMap('blocks').size === 0, 'el propietario limpia la sala');
+
+  closeAll(owner, guest);
+  await wait(100);
+  app.rooms.unload(app.rooms.get(id));
+  assert.ok(!app.rooms.rooms.has(id), 'sala descargada de memoria');
+
+  const reloaded = new Client(id, { owner: ownerToken });
+  await until(() => reloaded.role, 'welcome tras recargar');
+  await wait(200);
+  assert.equal(app.rooms.get(id).doc.getMap('blocks').size, 0, 'la sala limpiada no recupera un bloque al cargarse');
+  assert.equal(reloaded.blocks().length, 0);
+  reloaded.close();
+});

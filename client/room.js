@@ -101,11 +101,21 @@ function icon(name) {
   return svg;
 }
 
-function toast(text, kind = 'info') {
+/** Aviso temporal; con `action` ({ label, run }) muestra un botón y dura más. */
+function toast(text, kind = 'info', action = null) {
   const node = el('div', `toast ${kind}`, text);
+  if (action) {
+    const btn = el('button', 'toast-action', action.label);
+    btn.onclick = () => {
+      node.remove();
+      action.run();
+    };
+    node.append(btn);
+  }
+  const ms = action ? 8000 : 3600;
   $('#toasts').append(node);
-  setTimeout(() => node.classList.add('out'), 3600);
-  setTimeout(() => node.remove(), 4000);
+  setTimeout(() => node.classList.add('out'), ms);
+  setTimeout(() => node.remove(), ms + 400);
 }
 
 /** Copia al portapapeles; devuelve true si lo logró. */
@@ -198,6 +208,30 @@ function deleteBlock(id) {
   doc.transact(() => {
     blocksMap.delete(id);
     applyOrder(ids.filter((x) => x !== id));
+  });
+}
+
+/** Elimina todos los bloques. Sin confirmación, pero el aviso permite deshacer durante unos segundos. */
+function clearBlocks() {
+  const saved = blockEntries().map(([, m]) => ({ lang: validLang(m.get('lang')), text: m.get('text').toString() }));
+  if (!saved.length || !canEdit()) return;
+  doc.transact(() => blocksMap.clear());
+  toast('Sala limpiada', 'info', { label: 'Deshacer', run: () => restoreBlocks(saved) });
+}
+
+function restoreBlocks(saved) {
+  if (!canEdit()) return;
+  const base = orderedIds().length;
+  doc.transact(() => {
+    saved.slice(0, MAX_BLOCKS - base).forEach((b, i) => {
+      const block = new Y.Map();
+      blocksMap.set(randomId(), block);
+      block.set('lang', b.lang);
+      block.set('order', base + i);
+      const text = new Y.Text();
+      block.set('text', text);
+      if (b.text) text.insert(0, b.text);
+    });
   });
 }
 
@@ -421,7 +455,9 @@ function syncBlocks() {
   empty.hidden = entries.length > 0;
   empty.textContent = state.synced ? 'Esta sala no tiene bloques.' : 'Cargando…';
   $('#btn-add-block').hidden = !state.synced;
+  $('#btn-clear').hidden = entries.length === 0;
   $('#sb-blocks').textContent = `${entries.length} ${entries.length === 1 ? 'bloque' : 'bloques'}`;
+  if (state.synced) rememberRoom();
 
   if (pendingFocus && cards.has(pendingFocus)) {
     cards.get(pendingFocus).view.focus();
@@ -492,15 +528,29 @@ function renderRoomName() {
   document.title = `${state.roomName || `Sala ${roomId}`} | UN Code Sala`;
 }
 
-/** Guarda el nombre en la lista «Mis salas» de la portada (solo en el navegador del propietario). */
+/**
+ * Guarda el nombre y el lenguaje en la lista «Mis salas» de la portada (solo en el navegador del propietario).
+ * El lenguaje es el del primer bloque, no el elegido al crear la sala.
+ */
 function rememberRoom() {
   if (state.role !== 'owner') return;
   try {
     const list = JSON.parse(store.get('codesala:mine') || '[]');
-    const entry = list.find((r) => r.id === roomId);
-    if (entry) entry.name = state.roomName;
-    else list.unshift({ id: roomId, name: state.roomName, createdAt: Date.now() });
+    let entry = list.find((r) => r.id === roomId);
+    if (!entry) list.unshift((entry = { id: roomId, createdAt: Date.now() }));
+    entry.name = state.roomName;
+    if (state.synced) {
+      const first = blockEntries()[0];
+      entry.language = first ? validLang(first[1].get('lang')) : null;
+    }
     store.set('codesala:mine', JSON.stringify(list.slice(0, 20)));
+  } catch {}
+}
+
+/** La sala ya no existe: se quita de «Mis salas». */
+function forgetRoom() {
+  try {
+    store.set('codesala:mine', JSON.stringify(JSON.parse(store.get('codesala:mine') || '[]').filter((r) => r.id !== roomId)));
   } catch {}
 }
 
@@ -619,7 +669,10 @@ const connection = new RoomConnection({
           break;
         case 'error':
           if (msg.code === 'not-found') showOverlay('Sala no encontrada', 'La sala no existe o ya expiró.');
-          else if (msg.code === 'full') showOverlay('Sala llena', 'Esta sala alcanzó el máximo de conexiones.');
+          else if (msg.code === 'deleted') {
+            showOverlay('Sala eliminada', 'El propietario eliminó esta sala.');
+            forgetRoom();
+          } else if (msg.code === 'full') showOverlay('Sala llena', 'Esta sala alcanzó el máximo de conexiones.');
           else if (msg.code === 'forbidden') toast('Solo el propietario puede hacer eso', 'error');
           break;
       }
@@ -643,12 +696,16 @@ function downloadBase() {
 }
 
 $('#btn-add-block').onclick = () => addBlock();
+$('#btn-clear').onclick = clearBlocks;
 
 $('#btn-link').onclick = () => copyWithToast(`${location.origin}/r/${roomId}`, 'Enlace copiado (los invitados entran en solo lectura)');
 
 const allBlocks = () => blockEntries().map(([, m]) => ({ lang: validLang(m.get('lang')), text: m.get('text').toString() }));
 
-$('#btn-copy-all').onclick = () => copyWithToast(allBlocks().map((b) => b.text).join('\n\n'), 'Todos los bloques copiados');
+$('#btn-copy-all').onclick = () => {
+  if (!blockEntries().length) return toast('No hay bloques para copiar');
+  copyWithToast(allBlocks().map((b) => b.text).join('\n\n'), 'Todos los bloques copiados');
+};
 
 $('#btn-download').onclick = () => {
   const blocks = allBlocks();

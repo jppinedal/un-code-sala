@@ -129,6 +129,14 @@ export async function createApp({
         if (body === null) return reply(res, 400, 'Solicitud inválida');
         return reply(res, 201, JSON.stringify(rooms.create(body.language, body.name)), MIME['.json']);
       }
+      // Eliminar una sala: solo con el token de propietario (cabecera Authorization: Bearer ...)
+      const del = req.method === 'DELETE' && pathname.match(/^\/api\/rooms\/([a-z0-9]+)$/);
+      if (del) {
+        const auth = req.headers.authorization ?? '';
+        const result = rooms.remove(del[1], auth.startsWith('Bearer ') ? auth.slice(7).trim() : '');
+        if (result === 'ok') return reply(res, 204, '');
+        return result === 'forbidden' ? reply(res, 403, 'Sin permiso para eliminar esta sala') : reply(res, 404, 'Sala no encontrada');
+      }
       if (req.method !== 'GET' && req.method !== 'HEAD') return reply(res, 405, 'Método no permitido');
 
       if (pathname === '/version') return reply(res, 200, JSON.stringify({ version: BUILD_ID }), MIME['.json']);

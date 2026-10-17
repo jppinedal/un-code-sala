@@ -11,6 +11,8 @@ Salas de código en tiempo real donde **solo quien crea la sala puede editar** o
 - Cuaderno de **bloques de código** (hasta 30), cada uno con su lenguaje y su botón **Copiar**.
 - 34 lenguajes con resaltado: JavaScript, TypeScript, Python, Java, C, C++, C#, Go, Rust, PHP, SQL, HTML, CSS, Bash y más ([lista](shared/languages.js)).
 - Nombre de sala editable por el propietario y **código QR** para entrar desde el celular.
+- **Mis salas** en la portada, con el lenguaje del primer bloque y un botón para **eliminar** cada sala.
+- **Limpiar sala** elimina todos los bloques de una vez, con un aviso para deshacer.
 - Permisos por sala: propietario, editores y espectadores. Un espectador puede **pedir permiso** y el propietario lo concede o lo quita al instante.
 - Descargar los bloques, tema claro u oscuro, sin cuentas ni registro.
 
@@ -154,7 +156,7 @@ La regla se aplica **en el servidor**, no en la interfaz.
 - Al crear la sala se genera un token de propietario aleatorio; el servidor guarda solo su hash SHA-256 y lo compara en tiempo constante. El enlace de propietario lo lleva en el `#fragmento`, que nunca viaja al servidor.
 - Cada navegador tiene una clave privada de la que el servidor deriva un `uid` público. Los permisos se guardan por `uid` y sobreviven a recargas.
 - Los mensajes de escritura (`step2`, `update`) de quien no puede editar se descartan, sea texto, un bloque nuevo, un borrado o un cambio de lenguaje.
-- Conceder o quitar permisos, y renombrar la sala, solo lo acepta el servidor si vienen del propietario.
+- Conceder o quitar permisos, renombrar la sala y eliminarla solo lo acepta el servidor si vienen del propietario (eliminar exige su token en `DELETE /api/rooms/{id}`).
 
 Las [pruebas](test/permissions.test.mjs) cubren estos casos, incluido un visitante que manipula su copia local y la envía:
 

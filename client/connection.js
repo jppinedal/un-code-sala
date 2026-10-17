@@ -69,7 +69,7 @@ export class RoomConnection {
       // Los cursores remotos ya no son fiables sin conexión.
       const others = [...this.awareness.getStates().keys()].filter((id) => id !== this.doc.clientID);
       awarenessProtocol.removeAwarenessStates(this.awareness, others, this);
-      if (this.closed || ev.code === 4404) return; // sala inexistente: no reintentar
+      if (this.closed || ev.code === 4404 || ev.code === 4410) return; // sala inexistente o eliminada: no reintentar
       this.retryTimer = setTimeout(() => this.connect(), Math.min(10_000, 500 * 2 ** this.retries++));
     };
   }
