@@ -462,7 +462,7 @@ let seen = {}; // id de bloque -> huella de lo último que se vio
 let seenSaveTimer = null;
 
 function blockHash(card) {
-  const text = `${validLang(card.ymap.get('lang'))} ${card.ytext.toString()}`;
+  const text = `${validLang(card.ymap.get('lang'))}\0${card.ytext.toString()}`;
   let h = 5381;
   for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
   return `${(h >>> 0).toString(36)}.${text.length}`;
@@ -594,7 +594,7 @@ async function copyBlock(card) {
 }
 
 // ---------- Rol y personas ----------
-const ROLE_TEXT = { owner: 'Propietario', editor: 'Puedes editar', viewer: 'Solo lectura' };
+const ROLE_TEXT = { owner: 'Propietario', editor: 'Puedes editar', viewer: 'Lectura' };
 
 function applyRole(role, announce = false) {
   const previous = state.role;
@@ -614,7 +614,8 @@ function applyRole(role, announce = false) {
   badge.textContent = ROLE_TEXT[role];
   badge.dataset.role = role;
   $('#sb-role').textContent = ROLE_TEXT[role];
-  $('#banner').hidden = canEdit();
+  badge.title = role === 'viewer' ? 'Solo la persona que creó la sala (y quienes ella autorice) puede editar. Puedes copiar cada bloque.' : '';
+  $('#btn-request').hidden = canEdit();
   if (canEdit()) state.requested = false;
   renderRequestButton();
   renderRoomName();
@@ -684,7 +685,7 @@ roomNameInput.onkeydown = (e) => {
 };
 
 function renderRequestButton() {
-  $('#btn-request').textContent = state.requested ? 'Solicitud enviada (cancelar)' : 'Pedir permiso para editar';
+  $('#btn-request').textContent = state.requested ? 'Solicitud enviada (cancelar)' : 'Solicitar rol de edición';
 }
 
 function renderMembers() {

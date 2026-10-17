@@ -107,12 +107,10 @@ select:disabled { opacity: 1; cursor: default; appearance: none; -webkit-appeara
 .features span { color: var(--muted); font-size: 13px; }
 
 /* ---------- Sala ---------- */
-.room-page { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; height: 100dvh; overflow: hidden; }
-/* Filas fijas: si el aviso de solo lectura está oculto, la barra de estado no debe subir a la fila flexible */
+.room-page { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100dvh; overflow: hidden; }
 .room-page > .topbar { grid-row: 1; }
-.room-page > .banner { grid-row: 2; }
-.room-page > .workspace { grid-row: 3; }
-.room-page > .statusbar { grid-row: 4; }
+.room-page > .workspace { grid-row: 2; }
+.room-page > .statusbar { grid-row: 3; }
 
 .topbar {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -141,11 +139,9 @@ select:disabled { opacity: 1; cursor: default; appearance: none; -webkit-appeara
 
 .count { min-width: 20px; text-align: center; font-size: 11.5px; font-weight: 700; padding: 0 6px; border-radius: 99px; background: var(--accent); color: var(--accent-fg); }
 
-.banner {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  padding: 8px 14px; background: color-mix(in srgb, var(--warn) 14%, var(--panel)); border-bottom: 1px solid var(--border); color: var(--fg);
-}
-.banner .btn { margin-left: auto; }
+/* Quien solo puede leer ve «Lectura» y, a su lado, el botón para pedir el rol de edición */
+.btn.request { border-radius: 99px; border-color: var(--warn); }
+.btn.request:hover { background: color-mix(in srgb, var(--warn) 14%, var(--panel-2)); }
 
 .workspace { display: flex; min-height: 0; position: relative; }
 /* ---------- Cuaderno de bloques ---------- */

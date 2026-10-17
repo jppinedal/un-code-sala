@@ -20,14 +20,14 @@ UN Code Sala responde a ambos: solo el propietario (y a quien autorice) puede ed
 - Nombre de sala editable por el propietario y **código QR** para entrar desde el celular.
 - **Mis salas** en la portada, con el lenguaje del primer bloque y un botón para **eliminar** cada sala.
 - **Limpiar sala** elimina todos los bloques de una vez, con un aviso para deshacer.
-- Permisos por sala: propietario, editores y espectadores. Un espectador puede **pedir permiso** y el propietario lo concede o lo quita al instante.
+- Permisos por sala: propietario, editores y espectadores. Quien solo puede leer ve «Lectura», puede **solicitar el rol de edición** y el propietario lo concede o lo quita al instante.
 - Descargar los bloques, tema claro u oscuro, sin cuentas ni registro.
 
 ## Capturas
 
 | | |
 | --- | --- |
-| **Portada.** Nombre, lenguaje y un clic para crear la sala. | **Invitado.** Solo lectura: puede copiar cada bloque y pedir permiso. |
+| **Portada.** Nombre, lenguaje y un clic para crear la sala. | **Invitado.** Lectura: puede copiar cada bloque y solicitar el rol de edición. |
 | ![Portada](docs/img/portada.png) | ![Sala en solo lectura](docs/img/sala-invitado.png) |
 | **Personas.** El propietario ve quién está conectado y quién pide editar. | **Código QR.** Para proyectarlo en clase; lleva el enlace de invitados. |
 | ![Panel de personas](docs/img/personas.png) | ![Código QR](docs/img/qr.png) |
