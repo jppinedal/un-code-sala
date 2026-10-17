@@ -6,10 +6,17 @@ Salas de código en tiempo real donde **solo quien crea la sala puede editar** o
 
 ![Sala vista por el propietario](docs/img/sala-propietario.png)
 
+## Por qué existe
+
+El proyecto nació de un problema en las clases: en una sala de código compartida donde cualquiera puede escribir, un estudiante cortaba o borraba por descuido el código que el profesor iba agregando. Se perdía la secuencia de la clase y el profesor tenía que reescribirlo todo. Además, quien se desconectaba un momento no sabía qué bloque se había agregado mientras no estaba.
+
+UN Code Sala responde a ambos: solo el propietario (y a quien autorice) puede editar, y los bloques con cambios que aún no has visto se marcan con un puntito verde.
+
 ## Características
 
 - Cuaderno de **bloques de código** (hasta 30), cada uno con su lenguaje y su botón **Copiar**.
 - 34 lenguajes con resaltado: JavaScript, TypeScript, Python, Java, C, C++, C#, Go, Rust, PHP, SQL, HTML, CSS, Bash y más ([lista](shared/languages.js)).
+- **Puntito verde** en los bloques con cambios que aún no has visto: uno nuevo, uno modificado, o lo que cambió mientras estabas desconectado. Se quita al tocar el bloque o tras verlo unos segundos.
 - Nombre de sala editable por el propietario y **código QR** para entrar desde el celular.
 - **Mis salas** en la portada, con el lenguaje del primer bloque y un botón para **eliminar** cada sala.
 - **Limpiar sala** elimina todos los bloques de una vez, con un aviso para deshacer.

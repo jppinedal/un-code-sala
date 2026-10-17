@@ -80,6 +80,7 @@ const state = {
   roomName: '', // nombre de la sala (vacío si no tiene); solo el propietario lo cambia
   requested: false,
   synced: false, // ya recibimos el contenido de la sala
+  catchUp: false, // tras una desconexión, hasta recibir lo que pasó mientras no estábamos
   theme: document.documentElement.dataset.theme === 'light' ? 'light' : 'dark',
 };
 const canEdit = () => state.role === 'owner' || state.role === 'editor';
@@ -371,8 +372,13 @@ function createCard(id, ymap) {
   const tools = el('div', 'block-tools edit-only');
   tools.append(upBtn, downBtn, addBtn, delBtn);
 
+  const dot = el('span', 'new-dot');
+  dot.title = 'Cambios nuevos';
+  dot.setAttribute('role', 'img');
+  dot.setAttribute('aria-label', 'Cambios nuevos');
+
   const head = el('header', 'block-head');
-  head.append(num, langSel, el('span', 'spacer'), copyBtn, tools);
+  head.append(dot, num, langSel, el('span', 'spacer'), copyBtn, tools);
   const host = el('div', 'block-editor');
   section.append(head, host);
 
@@ -399,13 +405,21 @@ function createCard(id, ymap) {
     ymap,
     ytext,
     language: null,
+    isNew: false, // tiene cambios que esta persona aún no ha visto
+    visible: false, // está a la vista en el cuaderno
+    seenTimer: null,
     ui: { num, langSel, copyBtn, upBtn, downBtn, delBtn },
   };
   cards.set(id, card);
+  section.addEventListener('pointerdown', () => card.isNew && noteSeen(card));
+  section.addEventListener('focusin', () => card.isNew && noteSeen(card));
+  seenObserver.observe(section);
   return card;
 }
 
 function destroyCard(card) {
+  seenObserver.unobserve(card.el);
+  clearTimeout(card.seenTimer);
   card.view.destroy();
   card.undoManager.destroy();
   card.el.remove();
@@ -438,6 +452,101 @@ function reconfigureEditing(card) {
   if (!allowed) card.undoManager.clear();
 }
 
+// ---------- Cambios nuevos (puntito verde) ----------
+// Un bloque se marca como nuevo si otra persona lo creó o lo modificó y esta persona no lo vio:
+// estaba fuera de pantalla, con la pestaña oculta o sin conexión. Se quita al tocarlo o al verlo unos segundos.
+// Lo que ya se vio se recuerda en este navegador, para marcar también lo que cambió mientras no se estaba en la sala.
+const SEEN_KEY = `codesala:seen:${roomId}`;
+const SEEN_AFTER_MS = 3000;
+let seen = {}; // id de bloque -> huella de lo último que se vio
+let seenSaveTimer = null;
+
+function blockHash(card) {
+  const text = `${validLang(card.ymap.get('lang'))} ${card.ytext.toString()}`;
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
+  return `${(h >>> 0).toString(36)}.${text.length}`;
+}
+
+function saveSeen() {
+  clearTimeout(seenSaveTimer);
+  seenSaveTimer = null;
+  store.set(SEEN_KEY, JSON.stringify(seen));
+}
+window.addEventListener('pagehide', saveSeen);
+
+function noteSeen(card) {
+  clearTimeout(card.seenTimer);
+  card.isNew = false;
+  card.el.classList.remove('is-new');
+  seen[card.id] = blockHash(card);
+  seenSaveTimer ??= setTimeout(saveSeen, 800);
+}
+
+function markNew(card) {
+  card.isNew = true;
+  card.el.classList.add('is-new');
+  watchIfVisible(card);
+}
+
+/** Si el bloque nuevo está a la vista, se da por visto tras unos segundos. */
+function watchIfVisible(card) {
+  clearTimeout(card.seenTimer);
+  if (card.isNew && card.visible && document.visibilityState === 'visible') {
+    card.seenTimer = setTimeout(() => noteSeen(card), SEEN_AFTER_MS);
+  }
+}
+
+const seenObserver = new IntersectionObserver(
+  (entries) => {
+    for (const entry of entries) {
+      const card = cards.get(entry.target.dataset.id);
+      if (!card) continue;
+      card.visible = entry.intersectionRatio >= 0.4;
+      watchIfVisible(card);
+    }
+  },
+  { root: $('#scroll'), threshold: [0, 0.4] },
+);
+document.addEventListener('visibilitychange', () => cards.forEach(watchIfVisible));
+
+/** Al abrir la sala: marca lo que cambió desde la última visita. En la primera visita nada es nuevo. */
+function initSeen() {
+  let previous = null;
+  try {
+    previous = JSON.parse(store.get(SEEN_KEY) ?? 'null');
+  } catch {}
+  if (!previous || typeof previous !== 'object') previous = null;
+  seen = {};
+  for (const card of cards.values()) {
+    if (!previous || previous[card.id] === blockHash(card)) noteSeen(card);
+    else {
+      if (previous[card.id]) seen[card.id] = previous[card.id]; // lo último que vio, por si recarga antes de verlo
+      markNew(card);
+    }
+  }
+  saveSeen();
+}
+
+/** Revisa quién cambió qué: lo propio y lo que se ve en vivo cuenta como visto; el resto, como nuevo. */
+function trackChanges(events, transaction) {
+  if (!state.synced) return;
+  const ids = new Set();
+  for (const e of events) {
+    if (e.target === blocksMap) {
+      for (const [key, change] of e.keys) if (change.action === 'add') ids.add(key);
+    } else if (e.target instanceof Y.Text) ids.add(e.path[0]);
+    else if (e.keys?.has('lang')) ids.add(e.path[0]); // los cambios de orden no cuentan
+  }
+  const watching = !state.catchUp && document.visibilityState === 'visible';
+  for (const id of ids) {
+    const card = cards.get(id);
+    if (!card) continue;
+    if (transaction.local || (watching && card.visible)) noteSeen(card);
+    else markNew(card);
+  }
+}
+
 /** Reconcilia las tarjetas con el contenido del documento (altas, bajas y orden). */
 function syncBlocks() {
   const entries = blockEntries();
@@ -466,8 +575,9 @@ function syncBlocks() {
 }
 
 // Se ignoran los cambios que solo son texto: cada editor ya se actualiza solo.
-blocksMap.observeDeep((events) => {
+blocksMap.observeDeep((events, transaction) => {
   if (events.some((e) => !(e.target instanceof Y.Text))) syncBlocks();
+  trackChanges(events, transaction);
 });
 
 async function copyBlock(card) {
@@ -639,14 +749,19 @@ const connection = new RoomConnection({
   awareness,
   handlers: {
     status(s) {
+      if (s === 'offline' && state.synced) state.catchUp = true;
       const pill = $('#status');
       pill.dataset.state = s;
       pill.textContent = STATUS_TEXT[s];
     },
     synced() {
-      if (state.synced) return;
+      if (state.synced) {
+        state.catchUp = false; // ya llegó lo ocurrido durante la desconexión
+        return;
+      }
       state.synced = true;
       syncBlocks();
+      initSeen();
     },
     message(msg) {
       switch (msg.t) {

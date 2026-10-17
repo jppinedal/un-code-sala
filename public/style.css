@@ -154,7 +154,13 @@ select:disabled { opacity: 1; cursor: default; appearance: none; -webkit-appeara
 .blocks { display: flex; flex-direction: column; gap: 14px; }
 .block { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: border-color .15s, box-shadow .15s; }
 .block:focus-within { border-color: var(--accent-text); box-shadow: 0 0 0 1px var(--accent-text); }
-.block-head { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 12px; background: var(--panel-2); border-bottom: 1px solid var(--border); }
+.block-head { position: relative; display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 18px; background: var(--panel-2); border-bottom: 1px solid var(--border); }
+/* Puntito verde: el bloque tiene cambios que aún no se han visto */
+.new-dot {
+  display: none; position: absolute; left: 6px; top: 50%; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+.block.is-new .new-dot { display: block; }
 .block-num { font: 600 12px ui-monospace, Consolas, monospace; color: var(--muted); min-width: 1.5em; }
 .block-lang { padding: 3px 8px; font-size: 12.5px; max-width: 170px; }
 .block-lang:disabled { background: transparent; border-color: transparent; color: var(--muted); padding-left: 0; }
